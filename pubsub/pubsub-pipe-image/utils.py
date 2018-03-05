@@ -37,7 +37,7 @@ def get_credentials():
 
     credentials = service_account.Credentials.from_service_account_file(
         '../../gcp_service_credentials.json')
-    if credentials.requires_scopes():
+    if credentials.requires_scopes:
         credentials = credentials.with_scopes(SCOPES)
     # if credentials.create_scoped_required():
     #         credentials = credentials.create_scoped(SCOPES)
