@@ -13,22 +13,22 @@ spec:
     spec:
       containers:
       - name: twitter-to-pubsub
-        image: gcr.io/google-samples/pubsub-bq-pipe:v5
+        image: gcr.io/project_id/pubsub-bq-pipe
         env:
         - name: PROCESSINGSCRIPT
           value: twitter-to-pubsub
         # Change this to your pubsub topic
         - name: PUBSUB_TOPIC
-          value: projects/your-project/topics/your-topic
+          value: projects/project_id/topics/new_bq_table
         # Change the following four settings to your twitter credentials
         # information.
         - name: CONSUMERKEY
-          value: xxxx
+          value: app_key  
         - name: CONSUMERSECRET
-          value: xxxx
+          value: app_secret 
         - name: ACCESSTOKEN
-          value: xxxx
+          value: oauth_token  
         - name: ACCESSTOKENSEC
-          value: xxxx
+          value: oauth_token_secret
         - name: TWSTREAMMODE
           value: sample

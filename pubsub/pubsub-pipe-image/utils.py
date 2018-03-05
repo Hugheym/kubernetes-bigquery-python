@@ -25,7 +25,7 @@ from apiclient import discovery
 import dateutil.parser
 import httplib2
 from oauth2client.client import GoogleCredentials
-
+from google.oauth2 import service_account
 SCOPES = ['https://www.googleapis.com/auth/bigquery',
           'https://www.googleapis.com/auth/pubsub']
 NUM_RETRIES = 3
@@ -34,7 +34,9 @@ NUM_RETRIES = 3
 
 def get_credentials():
     """Get the Google credentials needed to access our services."""
-    credentials = GoogleCredentials.get_application_default()
+
+    credentials = service_account.Credentials.from_service_account_file(
+        '../../gcp_service_credentials.json')
     if credentials.create_scoped_required():
             credentials = credentials.create_scoped(SCOPES)
     return credentials
