@@ -132,6 +132,7 @@ if __name__ == '__main__':
     sub_name = "tweets-%s" % topic_name
     print "starting write to BigQuery...."
     credentials = utils.get_credentials()
+
     bigquery = utils.create_bigquery_client(credentials)
     pubsub = utils.create_pubsub_client(credentials)
     try:
