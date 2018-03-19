@@ -21,10 +21,11 @@ import collections
 import datetime
 import time
 
-from apiclient import discovery
+
 import dateutil.parser
-import httplib2
-from oauth2client.client import GoogleCredentials
+from google.cloud.pubsub import types
+
+
 from google.oauth2 import service_account
 SCOPES = ['https://www.googleapis.com/auth/bigquery',
           'https://www.googleapis.com/auth/pubsub']
@@ -36,7 +37,7 @@ def get_credentials():
     """Get the Google credentials needed to access our services."""
 
     credentials = service_account.Credentials.from_service_account_file(
-        '../../gcp_service_credentials.json')
+        './gcp_tw_bq_ps_creds.json')
     if credentials.requires_scopes:
         credentials = credentials.with_scopes(SCOPES)
     # if credentials.create_scoped_required():
@@ -44,30 +45,93 @@ def get_credentials():
     return credentials
 
 
-def create_bigquery_client(credentials):
+def create_bigquery_client(creds):
     """Build the bigquery client."""
-    http = httplib2.Http()
-    credentials.authorize(http)
-    return discovery.build('bigquery', 'v2', http=http)
+    from google.cloud import bigquery
+    cli = bigquery.Client(credentials=creds)
+    return cli
 
+def create_pub_client(creds):
+    """ Build a publishing client for pubsub"""
+    from google.cloud import pubsub
+    return pubsub.PublisherClient(credentials=creds, batch_settings=types.BatchSettings(max_messages=50))
 
-def create_pubsub_client(credentials):
-    """Build the pubsub client."""
-    http = httplib2.Http()
-    credentials.authorize(http)
-    return discovery.build('pubsub', 'v1beta2', http=http)
+def create_sub_client(creds):
+    """ Build a publishing client for pubsub"""
+    from google.cloud import pubsub
+    return pubsub.SubscriberClient(credentials=creds)
+
+# def create_pubsub_client(credentials):
+#     """Build the pubsub client."""
+#     http = httplib2.Http()
+#     credentials.authorize(http)
+#     from google.cloud import pubsub
+#
+#     return discovery.build('pubsub', 'v1beta2', http=http)
 
 
 def flatten(lst):
     """Helper function used to massage the raw tweet data."""
     for el in lst:
         if (isinstance(el, collections.Iterable) and
-                not isinstance(el, basestring)):
+                not isinstance(el, str)):
             for sub in flatten(el):
                 yield sub
         else:
             yield el
 
+def tweet_clean(data: dict):
+    """clean and prepare data"""
+    res = {}
+    for k,v in data.items():
+        if(k=="id"):
+            res[k] = int(v)
+        elif k=="text" :
+            res[k]=str(v)
+        elif k=="user":
+            res["user_id"]=v["id"]
+        elif k=="created_at":
+            res[k]=str(dateutil.parser.parse(v))
+        elif k=="in_reply_to_status_id":
+            if v!=None:
+                res[k]=int(v)
+        elif k=="in_reply_to_user_id":
+            if v != None:
+                res[k]=int(v)
+        elif k=="has_coordinates":
+            res[k]=v
+        elif k=="coordinates":
+            if(v!=None and "coordinates" in v and len(v["coordinates"])==2):
+                res["longitude"]=v["coordinates"][0]
+                res["latitude"]=v["coordinates"][1]
+        elif k=="place":
+            if v!=None and "id" in v:
+                res["place_id"]=v["id"]
+        elif k=="quoted_status_id":
+            if v != None:
+                res[k]=int(v)
+        elif k=="is_quoted_status":
+            res[k]=v
+        elif k=="quote_count":
+            res[k]=int(v)
+        elif k=="reply_count":
+            res[k]=int(v)
+        elif k=="retweet_count":
+            res[k]=int(v)
+        elif k=="favorite_count":
+            res[k]=int(v)
+        elif k=="entities":
+            if "hashtags" in v and v["hashtags"]!=[]:
+                res["hashtags"]=list(ht["text"] for ht in v["hashtags"] if "text" in ht)
+            if "urls" in v and v["urls"]!=[]:
+                res["expanded_urls"] = list(u["expanded_url"] for u in v["urls"] if "expanded_url" in u)
+            if "user_mentions" in v and v["user_mentions"]!=[]:
+                res["user_mentions"] = list(u["id"] for u in v["user_mentions"] if "id" in u)
+        elif k=="filter_level":
+            res[k]=v
+        elif k=="user_id":
+            res[k]=int(v)
+    return res
 
 def cleanup(data):
     """Do some data massaging."""
@@ -121,5 +185,5 @@ def bq_data_insert(bigquery, project_id, dataset, table, tweets):
         # print "streaming response: %s %s" % (datetime.datetime.now(), response)
         return response
         # TODO: 'invalid field' errors can be detected here.
-    except Exception, e1:
-        print "Giving up: %s" % e1
+    except Exception as e1:
+        print("Giving up: %s" % e1)

@@ -26,4 +26,4 @@ if script == 'pubsub-to-bigquery':
 elif script == 'twitter-to-pubsub':
     os.system("python twitter-to-pubsub.py")
 else:
-    print "unknown script %s" % script
+    print("unknown script %s" % script)
